@@ -551,4 +551,5 @@ const BLOG = {
   VERSION: process.env.NEXT_PUBLIC_VERSION // 版本号
 }
 
+
 module.exports = BLOG
