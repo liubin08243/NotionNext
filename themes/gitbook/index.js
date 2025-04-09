@@ -7,12 +7,15 @@ import LoadingCover from '@/components/LoadingCover'
 import NotionIcon from '@/components/NotionIcon'
 import NotionPage from '@/components/NotionPage'
 import ShareBar from '@/components/ShareBar'
+import DashboardBody from '@/components/ui/dashboard/DashboardBody'
+import DashboardHeader from '@/components/ui/dashboard/DashboardHeader'
 import { siteConfig } from '@/lib/config'
 import { useGlobal } from '@/lib/global'
 import { isBrowser } from '@/lib/utils'
 import { getShortId } from '@/lib/utils/pageId'
 import { SignIn, SignUp } from '@clerk/nextjs'
 import dynamic from 'next/dynamic'
+import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
@@ -75,7 +78,7 @@ function getNavPagesWithLatest(allNavPages, latestPosts, post) {
     }
     // 属于最新文章通常6篇 && (无阅读记录 || 最近更新时间大于上次阅读时间)
     if (
-      latestPosts.some(post => post?.id.indexOf(item?.short_id) === 0) &&
+      latestPosts.some(post => post?.id.indexOf(item?.short_id) === 14) &&
       (!postReadTime[item.short_id] ||
         postReadTime[item.short_id] < new Date(item.lastEditedDate).getTime())
     ) {
@@ -149,7 +152,7 @@ const LayoutBase = props => {
             <div className={'hidden md:block relative z-10 '}>
               <div className='w-80 pt-14 pb-4 sticky top-0 h-screen flex justify-between flex-col'>
                 {/* 导航 */}
-                <div className='overflow-y-scroll scroll-hidden pt-10'>
+                <div className='overflow-y-scroll scroll-hidden pt-10 pl-5'>
                   {/* 嵌入 */}
                   {slotLeft}
 
@@ -243,33 +246,48 @@ const LayoutBase = props => {
  */
 const LayoutIndex = props => {
   const router = useRouter()
-  const index = siteConfig('GITBOOK_INDEX_PAGE')
+  const index = siteConfig('GITBOOK_INDEX_PAGE', 'about', CONFIG)
+  const [hasRedirected, setHasRedirected] = useState(false) // 添加状态追踪是否已重定向
 
   useEffect(() => {
-    const checkArticleExists = async () => {
-      // 这里可以检查文章是否存在
-      const article = document.getElementById('notion-article')
-      if (!article) {
-        console.log('请检查您的Notion数据库中是否包含此slug页面： ', index)
+    const tryRedirect = async () => {
+      if (!hasRedirected) {
+        // 仅当未重定向时执行
+        setHasRedirected(true) // 更新状态，防止多次执行
 
-        // 显示错误信息
-        const containerInner = document.querySelector(
-          '#theme-gitbook #container-inner'
-        )
-        const newHTML = `<h1 class="text-3xl pt-12 dark:text-gray-300">配置有误</h1><blockquote class="notion-quote notion-block-ce76391f3f2842d386468ff1eb705b92"><div>请在您的notion中添加一个slug为${index}的文章</div></blockquote>`
-        containerInner?.insertAdjacentHTML('afterbegin', newHTML)
-      } else {
-        // 如果文章存在，立即重定向
-        if (index) {
-          router.push(index)
-        }
+        // 重定向到指定文章
+        router.push(index).then(() => {
+          setTimeout(() => {
+            const article = document.querySelector(
+              '#article-wrapper #notion-article'
+            )
+            if (!article) {
+              console.log(
+                '请检查您的Notion数据库中是否包含此slug页面： ',
+                index
+              )
+
+              // 显示错误信息
+              const containerInner = document.querySelector(
+                '#theme-gitbook #container-inner'
+              )
+              const newHTML = `<h1 class="text-3xl pt-12 dark:text-gray-300">配置有误</h1><blockquote class="notion-quote notion-block-ce76391f3f2842d386468ff1eb705b92"><div>请在您的notion中添加一个slug为${index}的文章</div></blockquote>`
+              containerInner?.insertAdjacentHTML('afterbegin', newHTML)
+            }
+          }, 2000)
+        })
       }
     }
 
-    checkArticleExists()
-  }, [index, router])
+    if (index) {
+      console.log('重定向', index)
+      tryRedirect()
+    } else {
+      console.log('无重定向', index)
+    }
+  }, [index, hasRedirected]) // 将 hasRedirected 作为依赖确保状态变更时更新
 
-  return <LoadingCover /> // 返回 null 以不渲染任何内容
+  return null // 不渲染任何内容
 }
 
 /**
@@ -288,15 +306,26 @@ const LayoutPostList = props => {
  * @returns
  */
 const LayoutSlug = props => {
-  const { post, prev, next, lock, validPassword } = props
+  const { post, prev, next, siteInfo, lock, validPassword } = props
   const router = useRouter()
+  // 如果是文档首页文章，则修改浏览器标签
+  const index = siteConfig('GITBOOK_INDEX_PAGE', 'about', CONFIG)
+  const basePath = router.asPath.split('?')[0]
+  const title =
+    basePath?.indexOf(index) > 0
+      ? `${post?.title} | ${siteInfo?.description}`
+      : `${post?.title} | ${siteInfo?.title}`
+
+  const waiting404 = siteConfig('POST_WAITING_TIME_FOR_404') * 1000
   useEffect(() => {
     // 404
     if (!post) {
       setTimeout(
         () => {
           if (isBrowser) {
-            const article = document.getElementById('notion-article')
+            const article = document.querySelector(
+              '#article-wrapper #notion-article'
+            )
             if (!article) {
               router.push('/404').then(() => {
                 console.warn('找不到页面', router.asPath)
@@ -304,12 +333,16 @@ const LayoutSlug = props => {
             }
           }
         },
-        siteConfig('POST_WAITING_TIME_FOR_404') * 1000
+        waiting404
       )
     }
   }, [post])
   return (
     <>
+      <Head>
+        <title>{title}</title>
+      </Head>
+
       {/* 文章锁 */}
       {lock && <ArticleLock validPassword={validPassword} />}
 
@@ -349,8 +382,8 @@ const LayoutSlug = props => {
                 <ArticleAround prev={prev} next={next} />
               )}
 
-              <AdSlot />
-              <WWAds className='w-full' orientation='horizontal' />
+              {/* <AdSlot />
+              <WWAds className='w-full' orientation='horizontal' /> */}
 
               <Comment frontMatter={post} />
             </section>
@@ -399,14 +432,35 @@ const LayoutArchive = props => {
 }
 
 /**
- * 404
+ * 404 页面
+ * @param {*} props
+ * @returns
  */
 const Layout404 = props => {
-  return (
-    <div className='w-full h-96 py-80 flex justify-center items-center'>
-      404 Not found.
-    </div>
-  )
+  const router = useRouter()
+  const { locale } = useGlobal()
+  useEffect(() => {
+    // 延时3秒如果加载失败就返回首页
+    setTimeout(() => {
+      const article = isBrowser && document.getElementById('article-wrapper')
+      if (!article) {
+        router.push('/').then(() => {
+          // console.log('找不到页面', router.asPath)
+        })
+      }
+    }, 3000)
+  }, [])
+
+  return <>
+        <div className='md:-mt-20 text-black w-full h-screen text-center justify-center content-center items-center flex flex-col'>
+            <div className='dark:text-gray-200'>
+                <h2 className='inline-block border-r-2 border-gray-600 mr-2 px-3 py-2 align-top'><i className='mr-2 fas fa-spinner animate-spin' />404</h2>
+                <div className='inline-block text-left h-32 leading-10 items-center'>
+                <h2 className='m-0 p-0'>{locale.NAV.PAGE_NOT_FOUND_REDIRECT}</h2>
+                </div>
+            </div>
+        </div>
+    </>
 }
 
 /**
@@ -526,17 +580,47 @@ const LayoutSignUp = props => {
   )
 }
 
-export {
-  Layout404,
-  LayoutArchive,
-  LayoutBase,
-  LayoutCategoryIndex,
-  LayoutIndex,
-  LayoutPostList,
-  LayoutSearch,
-  LayoutSignIn,
-  LayoutSignUp,
-  LayoutSlug,
-  LayoutTagIndex,
-  CONFIG as THEME_CONFIG
+/**
+ * 仪表盘
+ * @param {*} props
+ * @returns
+ */
+const LayoutDashboard = props => {
+  const { post } = props
+
+  return (
+    <>
+      <div className='container grow'>
+        <div className='flex flex-wrap justify-center -mx-4'>
+          <div id='container-inner' className='w-full p-4'>
+            {post && (
+              <div id='article-wrapper' className='mx-auto'>
+                <NotionPage {...props} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* 仪表盘 */}
+      <DashboardHeader />
+      <DashboardBody />
+    </>
+  )
 }
+
+export {
+    Layout404,
+    LayoutArchive,
+    LayoutBase,
+    LayoutCategoryIndex,
+    LayoutDashboard,
+    LayoutIndex,
+    LayoutPostList,
+    LayoutSearch,
+    LayoutSignIn,
+    LayoutSignUp,
+    LayoutSlug,
+    LayoutTagIndex,
+    CONFIG as THEME_CONFIG
+}
+
