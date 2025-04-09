@@ -4,7 +4,7 @@ const CONFIG = {
 
   HEO_HOME_BANNER_ENABLE: true,
 
-  HEO_SITE_CREATE_TIME: '2021-09-21', // 建站日期，用于计算网站运行的第几天
+  HEO_SITE_CREATE_TIME: '2025-03-21', // 建站日期，用于计算网站运行的第几天
 
   // 首页顶部通知条滚动内容，如不需要可以留空 []
   HEO_NOTICE_BAR: [
@@ -22,7 +22,7 @@ const CONFIG = {
   HEO_HERO_TITLE_2: '与AI技能',
   HEO_HERO_TITLE_3: 'liudada.ai',
   HEO_HERO_TITLE_4: '专注领域',
-  HEO_HERO_TITLE_5: 'AI编程|AI工具|智能体|AI工作流|AI绘图',
+  HEO_HERO_TITLE_5: 'AI编程|AI工具|智能体',
   HEO_HERO_TITLE_LINK: 'https://liudada.ai',
   // 英雄区遮罩文字
   HEO_HERO_COVER_TITLE: '随便逛逛',
@@ -57,7 +57,7 @@ const CONFIG = {
   HEO_GROUP_ICONS: [
     {
       title_1: 'Windsurf',
-      img_1: '/images/heo/20256359d71b45ab77829cee5972e36f8c30073902.webp',
+      img_1: '/images/heo/20256359d71b45ab77829cee5972e36f8c30073902.svg',
       color_1: '#989bf8',
       title_2: 'Sketch',
       img_2: '/images/heo/2023e0ded7b724a39f12d59c3dc8fbdc7cbe074202.webp',
@@ -89,7 +89,7 @@ const CONFIG = {
     },
     {
       title_1: 'Cursor',
-      img_1: '/images/heo/20257359d71b45ab77829cee5972e36f8c30073902.svg',
+      img_1: '/images/heo/20257359d71b45ab77829cee5972e36f8c30073902.webp',
       color_1: '#f29e39',
       title_2: 'CSS3',
       img_2: '/images/heo/20237c548846044a20dad68a13c0f0e1502f074602.webp',
